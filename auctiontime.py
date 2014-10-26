@@ -224,9 +224,9 @@ class Crawler(QWebView):
     def parseListing(self, soup):
         url = self.url().toString()
         self.log('Parsing Listing: ' + url)
-        price, manufacturer, model, year, country, company, counter, serial, category, currency = \
-            (None, None, None, None, None, None, None, None, None, None)
-        isY, isMan, isMod, isSerial, isLoc, isHrs = (False, False, False, False, False, False)
+        price, manufacturer, model, year, country, company, counter, serial, category, currency, condition = \
+            (None, None, None, None, None, None, None, None, None, None, None)
+        isY, isMan, isMod, isSerial, isLoc, isHrs, isCond = (False, False, False, False, False, False, False)
 
         currBidText = soup.find(id='ctl00_ContentPlaceHolder1_AuctionInformationBox1_lblCurrentBidText')
         if currBidText is not None and currBidText.get_text().strip() != 'Final Bid:':
@@ -257,6 +257,8 @@ class Crawler(QWebView):
                 if t == 'Serial Number': isSerial = True; continue
                 if isHrs: counter = td.get_text().strip(); isHrs = False; continue
                 if t == 'Hours': isHrs = True; continue
+                if isCond: condition = td.get_text().strip(); isCond = False; continue
+                if t == 'Condition': isCond = True; continue
 
         if manufacturer is not None and model is not None:
             l = len(manufacturer) + len(model) + 1 # +1 is the space char
@@ -300,6 +302,8 @@ class Crawler(QWebView):
             doc["company"] = company
         if serial != None:
             doc["serial"] = serial
+        if condition == 'New':
+            doc["new"] = 1
 
         if manufacturer == None or model == None:
             self.log("Mandatory fields missing: " + url)
