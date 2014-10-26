@@ -201,7 +201,7 @@ class Crawler(QWebView):
                 pass
             if url is not None \
                     and url not in used \
-                    and '/OnlineAuctions/Details.aspx' in url:
+                    and re.match('http://www\.auctiontime\.com/OnlineAuctions/Details\.aspx\?OHID=[0-9]+&lp=mat$', url) is not None:
                 used.append(url)
                 if not self.isDuplicateListing(url):
                     listingsCnt += 1
@@ -259,7 +259,9 @@ class Crawler(QWebView):
                 if t == 'Hours': isHrs = True; continue
 
         if manufacturer is not None and model is not None:
-            category = soup.title.string.strip()[(len(manufacturer + ' ' + model) + 1):].replace(' For Auction At AuctionTime.com', '').strip()
+            l = len(manufacturer) + len(model) + 1 # +1 is the space char
+            l += len(year) + 1 if year is not None else 0
+            category = soup.title.string.strip()[(l + 1):].replace(' For Auction At AuctionTime.com', '').strip()
 
         companyElement = soup.find(id='ctl00_ContentPlaceHolder1_SellerInformation1_hlContact')
         if companyElement is not None:
