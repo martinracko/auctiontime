@@ -408,5 +408,5 @@ if __name__ == '__main__':
         QNetworkProxy.setApplicationProxy(QNetworkProxy(QNetworkProxy.HttpProxy, proxy.host(), proxy.port(), proxy.userName(), proxy.password()))
         print("Using application proxy:", proxy.toString())
     crawler = Crawler(app, cfg)
-    crawler.run(['http://www.auctiontime.com/drilldown/manulist.aspx?LP=MAT&ETID=5&OALResults=1'])
+    crawler.run(['http://www.auctiontime.com/drilldown/manulist.aspx?LP=MAT&ETID=5&OALResults=1', 'http://www.auctiontime.com/drilldown/manulist.aspx?LP=TH&ETID=5&OALResults=1'])
     sys.exit(app.exec_())
