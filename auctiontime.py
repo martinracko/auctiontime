@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from _testcapi import test_datetime_capi
 from pymongo.errors import DuplicateKeyError
 
 __author__ = 'mr'
@@ -10,6 +9,7 @@ import random
 import time
 import re
 import traceback
+import subprocess
 from xml.etree import ElementTree as ET
 from configparser import  ConfigParser
 from PyQt4.QtGui import *
@@ -126,6 +126,11 @@ class Crawler(QWebView):
 
     def loadNextPage(self):
         time.sleep(self.cfg.sleep)
+
+        if self.cfg.getboolean('main', 'proxy'):
+            while not self.proxyActive():
+                time.sleep(1)
+
         if self.nextPage != None:
             self.log("Loading next page directly: " + self.nextPage)
             self.load(QUrl(self.nextPage))
@@ -149,6 +154,28 @@ class Crawler(QWebView):
             if self.nextPage is not None:
                 self.log("Next page chosen from meta data: " + self.nextPage)
                 self.load(QUrl(self.nextPage))
+
+    def proxyActive(self):
+        out = subprocess.Popen(['ps', 'aux'], stdout=subprocess.PIPE).communicate()[0]
+        tor, polipo = (False, False)
+        for line in out.split(b"\n"):
+            if b"/etc/init.d/tor restart" in line \
+                or b"/etc/init.d/tor restart" in line \
+                or b"/etc/init.d/tor stop" in line \
+                or b"/etc/init.d/tor reload" in line \
+                or b"/etc/init.d/tor force-reload" in line \
+                or b"/etc/init.d/polipo restart" in line \
+                or b"/etc/init.d/polipo stop" in line \
+                or b"/etc/init.d/polipo force-reload" in line:
+                self.log("Proxy inactive")
+                return False
+            if b"/usr/sbin/tor" in line:
+                self.log("Proxy: found Tor")
+                tor = True
+            if b"/usr/bin/polipo" in line:
+                self.log("Proxy: found Polipo")
+                polipo = True
+        return tor and polipo
 
     def parseSitemap(self, soup):
         self.log('Parsing sitemap: ' + self.url().toString())
@@ -187,7 +214,6 @@ class Crawler(QWebView):
         self.log('Parsing List: ' + self.url().toString())
         links = soup.find_all('a')
         modifieds = soup.find_all("span", {"class": "smallblack"})
-        cnt = len(links)
         self.listings = []
         listingsCnt = 0
         duplicatesCnt = 0
@@ -201,7 +227,7 @@ class Crawler(QWebView):
                 pass
             if url is not None \
                     and url not in used \
-                    and re.match('http://www\.auctiontime\.com/OnlineAuctions/Details\.aspx\?OHID=[0-9]+&lp=mat$', url) is not None:
+                    and re.match('http://www\.auctiontime\.com/OnlineAuctions/Details\.aspx\?OHID=[0-9]+&lp=(mat|th)$', url) is not None:
                 used.append(url)
                 if not self.isDuplicateListing(url):
                     listingsCnt += 1
@@ -300,7 +326,7 @@ class Crawler(QWebView):
             doc["counter"] = counter
         if company != None:
             doc["company"] = company
-        if serial != None:
+        if serial != None and serial != "UNKNOWN":
             doc["serial"] = serial
         if condition == 'New':
             doc["new"] = 1
@@ -408,5 +434,5 @@ if __name__ == '__main__':
         QNetworkProxy.setApplicationProxy(QNetworkProxy(QNetworkProxy.HttpProxy, proxy.host(), proxy.port(), proxy.userName(), proxy.password()))
         print("Using application proxy:", proxy.toString())
     crawler = Crawler(app, cfg)
-    crawler.run(['http://www.auctiontime.com/drilldown/manulist.aspx?LP=MAT&ETID=5&OALResults=1', 'http://www.auctiontime.com/drilldown/manulist.aspx?LP=TH&ETID=5&OALResults=1'])
+    crawler.run(['http://www.auctiontime.com/drilldown/manulist.aspx?LP=TH&ETID=5&OALResults=1', 'http://www.auctiontime.com/drilldown/manulist.aspx?LP=MAT&ETID=5&OALResults=1'])
     sys.exit(app.exec_())
